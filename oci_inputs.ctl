@@ -1,0 +1,3 @@
+VM_CLUSTER_OCID:ocid1.vmcluster.oc1.ca-toronto-1.ab2g6ljrjwz2ydz4btzr66ohmjg5xri65zofnojlhennjdusutgdrjlkcvla
+DEFAULT_OCPU:32
+HIGHEST_OCPU_VAL:100
