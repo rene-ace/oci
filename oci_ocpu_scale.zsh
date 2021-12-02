@@ -1,7 +1,7 @@
-#!/bin/zsh
+#!/bin/bash
 #set -x
 ############################################################################################
-## oci_ocpu_scale.zsh
+## oci_ocpu_scale.sh
 ##
 ## PURPOSE: To change the OCI OCPU values of a ExaCC VM Cluster
 ##
@@ -9,6 +9,15 @@
 ##        It uses the INPUT_FILE=$HOME/Documents/scripts/config/oci_inputs.ctl file to process
 ##        the variables needed for this script
 ##        example of the contents of the control file
+##        Valid OCPU Range is 0 for a VM Shutdownor 
+##        or 4 to the value of HIGHEST_OCPU_VAL 
+##        The Directories must exist for the script to work 
+##            SCRIPT_HOME=$HOME/scripts
+##            CONFIG_HOME=$SCRIPT_HOME/config
+##            LOG_HOME=$SCRIPT_HOME/logs
+##
+##        Should the location of the script change, change the value of 
+##            SCRIPT_HOME
 ##
 ##        VM_CLUSTER_OCID:VM_OCID_VALUE
 ##        DEFAULT_OCPU :32
@@ -57,46 +66,6 @@ usage()
 }
 
 ################################################################################
-# parse_arguments ()
-# This function will parse the arguments passed to the script
-################################################################################
-parse_arguments()
-{ 
-
-# make args an array, not a string
-args=( )
-
-# replace long arguments
-for arg; do
-    case "$arg" in
-        --status)         args+=( -s ) ;;
-        --scale_ocpu)     args+=( -o ) ;;
-        --ocid)           args+=( -i ) ;;
-        *)                args+=( "$arg" ) ;;
-    esac
-done
-
-#printf 'args before update : '; printf '%q ' "$@"; echo
-set -- "${args[@]}"
-#printf 'args after update  : '; printf '%q ' "$@"; echo
-
-while getopts "so:i:" OPTION; do
-    : "$OPTION" "$OPTARG"
-#    echo "optarg : $OPTARG"
-    case $OPTION in
-    s)  usage; ;;
-    o)  DEFAULT_OCPU=("$OPTARG");;
-    i)  VM_CLUSTER_OCID="$OPTARG";;
-    esac
-done
-
-if [ -z "$VM_CLUSTER_OCID" ]; then
-   usage
-fi
-}
-
-
-################################################################################
 # read_input_pars ()
 # This function will read the oci_inputs.ctl in $HOME/Documents/scripts/config
 ################################################################################
@@ -131,13 +100,27 @@ export VM_CLUSTER_OCID DEFAULT_OCPU HIGHEST_OCPU_VAL
 ################################################################################
 validate_ocpu_values ()
 {
-if [ $1 -gt 1 -a $1 -le ${2} ];
+
+value=${1}
+if [ $((value%2)) -eq 0 ]
 then
-   echo "====> New VM Cluster OCPU count of ${1} is : VALID"
+   if [ $1 -eq 0 ];
+   then
+      echo "====> New VM Cluster OCPU count of ${1} is : VALID"
+      echo "      With an OCPU value of 0 VM will be shutdown"
+   elif [ $1 -gt 3 -a $1 -le ${2} ];
+   then
+      echo "====> New VM Cluster OCPU count of ${1} is : VALID"
+   else
+      echo "====> New VM Cluster OCPU count of ${1} is : INVALID"
+      echo "      Valid OCPU Range is 0 or 4 - ${2} "
+      print_header_footer "ending"
+      exit 1
+   fi
 else
-   echo "====> New VM Cluster OCPU count of ${1} is : INVALID"
-   echo "Valid OCPU Range is 2 - ${2} "
-   echo "Exiting..."
+   echo "====> VM Cluster OCPU count of ${1} is : INVALID"
+   echo "      OCPU value needs to be 0 or an even number" 
+   print_header_footer "ending"
    exit 1
 fi
 }
@@ -149,7 +132,8 @@ fi
 get_ocpu_curr_value()
 {
 #oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq '.["data"]' | jq '.["cpus-enabled"]'
-oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"cpus-enabled\"
+#oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"cpus-enabled\"
+oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"display-name\",.data.\"cpus-enabled\"
 }
 
 ################################################################################
@@ -158,9 +142,72 @@ oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"cpus-en
 ################################################################################
 update_ocpu_curr_value()
 {
-# oci db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.\"display-name\"
-echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.display-name"
+oci db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.\"display-name\" > /dev/null 
+#echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.display-name"
 }
+
+################################################################################
+# write_log_file ()
+# This function will write the log file for the scale up/scale down actions
+################################################################################
+write_log_file()
+{
+ocpu_date_change=`date +"%d-%b-%Y"`
+ocpu_time_change=`date +"%H:%M:%S"`
+
+if [ ! -f ${LOG_HOME}/${1}.json ]; then
+   cat > ${LOG_HOME}/${1}.json <<EOF
+{
+  "messages": [
+    {
+      "vm": "${1}",
+      "cpus": ${2},
+      "date": "${ocpu_date_change}",
+      "time": "${ocpu_time_change}"
+    }
+  ]
+}
+EOF
+
+else
+   a_first_date=`cat ${LOG_HOME}/${1}.json | jq '.messages[0].date' | tr -d \"`
+   first_date=`date -d "${a_first_date}+30days" +"%Y%m%d%H%M%S"`
+
+   today_date=`date +"%Y%m%d%H%M%S"`
+   if [ ${first_date} -le ${today_date} ]; 
+   then
+      tar -czvf ${LOG_HOME}/${1}.${today_date}.tar.gz ${LOG_HOME}/${1}.json --remove-files > /dev/null 2>&1
+      cat > ${LOG_HOME}/${1}.json <<EOF
+{
+  "messages": [
+    {
+      "vm": "${1}",
+      "cpus": ${2},
+      "date": "${ocpu_date_change}",
+      "time": "${ocpu_time_change}"
+    }
+  ]
+}
+EOF
+   else
+      jq --arg VM_NAME "${1}" --arg CURRENT_OCPU "${2}" --arg ocpu_date_change "${ocpu_date_change}" --arg ocpu_time_change "${ocpu_time_change}" \
+      '.messages += [{"vm":$VM_NAME,"cpus":$CURRENT_OCPU,"date":$ocpu_date_change,"time":$ocpu_time_change}]' ${LOG_HOME}/${1}.json \
+      > ${LOG_HOME}/${1}.json.tmp && mv ${LOG_HOME}/${1}.json.tmp ${LOG_HOME}/${1}.json
+   fi
+fi
+}
+
+################################################################################
+# print_header_footer ()
+# This function will print the header and footer of the script
+################################################################################
+print_header_footer ()
+{
+   echo "************************************************************************"
+   echo "====>Script oci_ocpu_scale.sh is ${1} on" `date`
+   echo "************************************************************************"
+}
+
 
 
 ################################################################################
@@ -168,9 +215,7 @@ echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLU
 ##                        MAIN SCRIPT EXECUTION                               ##
 ##  ------------------------------------------------------------------------  ##
 ################################################################################
-echo "************************************************************************"
-echo "====>Script oci_ocpu_scale.sh starting on" `date`
-echo "************************************************************************"
+print_header_footer "starting"
 
 ################################################################################
 # Beginning of parsing arguments
@@ -210,8 +255,9 @@ done
 ################################################################################
 # Set Variables Section
 ################################################################################
-CONFIG_HOME=$HOME/Documents/scripts/config
-export CONFIG_HOME
+export SCRIPT_HOME=$HOME/scripts
+export CONFIG_HOME=$SCRIPT_HOME/config
+export LOG_HOME=$SCRIPT_HOME/logs
 read_input_pars
 DO_NOT_CHANGE_OCPU_LOCK="${CONFIG_HOME}/do_not_change_ocpu"
 
@@ -231,11 +277,13 @@ export VM_CLUSTER_OCID
 ################################################################################
 # Execution of Script
 ################################################################################
-CURRENT_OCPU=$(get_ocpu_curr_value)
-
+GET_OCPU=$(get_ocpu_curr_value)
+CURRENT_OCPU=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $2}'`
+VM_NAME=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $1}'`
 echo "====> Current VM Cluster OCPU Value is   : ${CURRENT_OCPU}"
 
 if [ "${STATUS}" = "true" ]; then
+   print_header_footer "ending"
    exit 0
 fi
 
@@ -247,6 +295,7 @@ if [[ -f "${DO_NOT_CHANGE_OCPU_LOCK}" ]]
       echo "      is not allowing OCPU Modifications"
       echo "      Remove lock before re-execution"
       echo "      Exiting..."
+      print_header_footer "ending"
       exit 1 
    fi
 
@@ -254,13 +303,17 @@ if [[ -f "${DO_NOT_CHANGE_OCPU_LOCK}" ]]
    then
       echo "====> Changing VM Cluster value to ${OCPU_VAL} OCPUs"
       update_ocpu_curr_value
-      CURRENT_OCPU=$(get_ocpu_curr_value)
+      GET_OCPU=$(get_ocpu_curr_value)
+      CURRENT_OCPU=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $2}'`
+      VM_NAME=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $1}'`
+      write_log_file ${VM_NAME} ${CURRENT_OCPU}
       echo "====> Current VM Cluster OCPU Value is   : ${CURRENT_OCPU}"
    else
       echo "====> Current VM Cluster OCPU Value is equal to ${DEFAULT_OCPU}" 
       echo "      Will not execute any scale up or scale down commands"
 fi
+print_header_footer "ending"
 
-echo "************************************************************************"
-echo "====>Script oci_ocpu_scale.sh ending on" `date`
-echo "************************************************************************"
+################################################################################
+# End of Execution of Script
+################################################################################
