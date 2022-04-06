@@ -2,7 +2,7 @@
 
 **1.- Create the RSA private/public keys and find the fingerprint of the RSA key**
 
-
+```
 [oracle@localhost ~]$ mkdir ~/.oci 
 [oracle@localhost ~]$ cd ~/.oci 
 [oracle@localhost ~]$ openssl genrsa -out ~/.oci/oci_api_key.pem 2048 
@@ -17,7 +17,7 @@ writing RSA key
 writing RSA key
 78:**:**:**:**:**:**:**:**:**:**:**:**:**:**:8g
 [oracle@localhost ~]$ cat ~/.oci/oci_api_key_public.pem | pbcopy  
-
+```
 
 **2. Log in to Oracle Cloud Infrastructure  and go to my user settings as the picture below. **
 
@@ -27,7 +27,7 @@ writing RSA key
   In the next screen, choose Paste Public Key,paste the public key I copied above and click on Add.
 
 **3. After the key has been added, it will generate a Configuration File called config that we will use in my local ~/.oci directory. Just substitute the key_file part of it to use my private RSA key that it was previously generated.**
-
+```
    [oracle@localhost ~]$ pwd
    /Users/*****/.oci
    [oracle@localhost ~]$ cat config
@@ -37,31 +37,31 @@ writing RSA key
    tenancy=ocid1.tenancy.oc1.*************************************
    region=ca-toronto-1
    key_file=/Users/****/.oci/oci_api_key.pem
- 
+``` 
 
 **4. The next thing is to install oci-cli (Oracle Linux 8 )**
-
+```
    [oracle@localhost ~]$ sudo dnf -y install oraclelinux-developer-release-el8
    [oracle@localhost ~]$ sudo dnf install python36-oci-cli
    #The CLI will be installed to the Python site packages:
 
    /usr/lib/python3.6/site-packages/oci_cli
    /usr/lib/python3.6/site-packages/services
-
+```
 **5. For Oracle Linux 7 **
-
+```
    [oracle@localhost ~]$  sudo yum install python36-oci-cli -y
    # The CLI will be installed to the Python site packages:
 
    /usr/lib/python3.6/site-packages/oci_cli
    /usr/lib/python3.6/site-packages/services
+```   
    Install jq which is json parser.
-
-
+```
    [oracle@localhost ~]$ sudo yum install jq -y
-
+```
 **6. Test out if the connectivity is working towards your OCI Tenancy**
-
+```
 [oracle@localhost ~]$ oci iam region list --output table
 +-----+----------------+
 | key | name           |
@@ -89,26 +89,25 @@ writing RSA key
 | YYZ | ca-toronto-1   |
 | ZRH | eu-zurich-1    |
 +-----+----------------+
-
+```
 **7. Create the following directories**
-
+```
    [oracle@localhost ~]$ mkdir $HOME/scripts
    [oracle@localhost ~]$ mkdir $HOME/scripts/config
    [oracle@localhost ~]$ mkdir $HOME/scripts/logs
-
+```
 **8. Proceed to create the script called oci_ocpu_scale.sh in $HOME/scripts**
 
  
 **9. This script uses a control file called oci_inputs.ctl in $HOME/scripts/config which will have the following 3 parameters. 
    It is important to know that the value of DEFAULT_OCPU can be overridden if a value is passed as a first parameter to the script.**
-
-
+```
    VM_CLUSTER_OCID:CHANGE_OCID_FOR_ACTUAL_VALUE # EXACC VM CLUSTER OCID
    DEFAULT_OCPU:32 # VALUE OF OCPUs CONSIDERED AS DEFAULT
    HIGHEST_OCPU_VAL:100 # MAXIMUM VALUE OF OCPUS THAT CAN BE SCALED UP TO
-
+```
 **10. The script will check for a lock file, called do_not_change_ocpu, in case you don’t want the script to override the current OCPU values of your ExaCC VM Cluster and also will not execute the update command if the new OCPU value is equal to the current OCPU value.**
-
+```
 Usage is 
 
 
@@ -129,8 +128,9 @@ Note 3: File config/do_not_change_ocpu will not allow a change of OCPUs
 When you run the script, it will look something like this.
 
 Note 4: If [ -c] or [-w] it will use the current OCPU value and either substract or add the value of the COOL_DOWN_OCPU_VAL or WARM_UP_OCPU_VAL from oci_inputs.ctl
-
+```
 **Example of execution**
+```
 [oracle@localhost ~]$ oci_ocpu_scale.sh -i <OCID_VM_VALUE> -o 10 
 ************************************************************************
 ====>Script oci_ocpu_scale.sh starting on Fri 31 Dec 2021 10:16:58 EST
@@ -144,3 +144,4 @@ vorade
 ************************************************************************
 ====>Script oci_ocpu_scale.sh ending on Fri 31 Dec 2021 10:22:28 EST
 ************************************************************************
+```
