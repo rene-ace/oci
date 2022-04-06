@@ -19,8 +19,7 @@ writing RSA key
 [oracle@localhost ~]$ cat ~/.oci/oci_api_key_public.pem | pbcopy  
 ```
 
-**2. Log in to Oracle Cloud Infrastructure  and go to my user settings as the picture below. **
-
+**2. Log in to Oracle Cloud Infrastructure  and go to my user settings as the picture below.**
 
   In my user settings,add the public key in the Resources section called API Keys 
 
@@ -48,7 +47,7 @@ writing RSA key
    /usr/lib/python3.6/site-packages/oci_cli
    /usr/lib/python3.6/site-packages/services
 ```
-**5. For Oracle Linux 7 **
+**5. For Oracle Linux 7**
 ```
    [oracle@localhost ~]$  sudo yum install python36-oci-cli -y
    # The CLI will be installed to the Python site packages:
