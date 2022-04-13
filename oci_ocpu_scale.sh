@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 ############################################################################################
-## oci_ocpu_scale.zsh
+## oci_ocpu_scale.sh
 ##
 ## PURPOSE: To change the OCI OCPU values of a ExaCC VM Cluster
 ##
