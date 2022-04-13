@@ -104,6 +104,8 @@ writing RSA key
    VM_CLUSTER_OCID:CHANGE_OCID_FOR_ACTUAL_VALUE # EXACC VM CLUSTER OCID
    DEFAULT_OCPU:32 # VALUE OF OCPUs CONSIDERED AS DEFAULT
    HIGHEST_OCPU_VAL:100 # MAXIMUM VALUE OF OCPUS THAT CAN BE SCALED UP TO
+   COOL_DOWN_OCPU_VAL:2 #COOL DOWN OCPU VALUES
+   WARM_UP_OCPU_VAL:4 #WARM UP OCPU VALUES
 ```
 **10. The script will check for a lock file, called do_not_change_ocpu, in case you don’t want the script to override the current OCPU values of your ExaCC VM Cluster and also will not execute the update command if the new OCPU value is equal to the current OCPU value.**
 ```
