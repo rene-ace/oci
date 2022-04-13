@@ -145,8 +145,8 @@ oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"display
 ################################################################################
 update_ocpu_curr_value()
 {
-#oci db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.\"display-name\" > /dev/null 
-echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.display-name"
+oci db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.\"display-name\" > /dev/null 
+#echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.display-name"
 }
 
 ################################################################################
