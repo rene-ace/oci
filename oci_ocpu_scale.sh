@@ -129,6 +129,19 @@ fi
 }
 
 ################################################################################
+# validate_vm_status ()
+# This function validates if the status of the VM is available to scale up/down
+################################################################################
+validate_vm_status ()
+{
+if [ "${1}" != "AVAILABLE" ]; then
+   echo "====> VM Cluster is not currently available,status is : ${1}"
+   print_header_footer "ending"
+   exit 1
+fi
+}
+
+################################################################################
 # get_ocpu_curr_value ()
 # This function will read from OCI the current OCPU value
 ################################################################################
@@ -136,7 +149,7 @@ get_ocpu_curr_value()
 {
 #oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq '.["data"]' | jq '.["cpus-enabled"]'
 #oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"cpus-enabled\"
-oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"display-name\",.data.\"cpus-enabled\"
+oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"display-name\",.data.\"cpus-enabled\",.data.\"lifecycle-state\"
 }
 
 ################################################################################
@@ -195,7 +208,7 @@ EOF
    else
       jq --arg VM_NAME "${1}" --arg CURRENT_OCPU "${2}" --arg ocpu_date_change "${ocpu_date_change}" --arg ocpu_time_change "${ocpu_time_change}" \
       '.messages += [{"vm":$VM_NAME,"cpus":$CURRENT_OCPU,"date":$ocpu_date_change,"time":$ocpu_time_change}]' ${LOG_HOME}/${1}.json \
-      > ${LOG_HOME}/${1}.json.tmp && mv ${LOG_HOME}/${1}.json.tmp ${LOG_HOME}/${1}.json
+      > ${LOG_HOME}/${1}.json.tmp && mv -f ${LOG_HOME}/${1}.json.tmp ${LOG_HOME}/${1}.json
    fi
 fi
 }
@@ -316,9 +329,11 @@ export VM_CLUSTER_OCID
 GET_OCPU=$(get_ocpu_curr_value)
 CURRENT_OCPU=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $2}'`
 VM_NAME=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $1}'`
-export CURRENT_OCPU
+VM_STATUS=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $3}'`
+export CURRENT_OCPU VM_STATUS VM_NAME
 echo "====> Current VM Cluster OCPU Value is   : ${CURRENT_OCPU}"
 
+validate_vm_status ${VM_STATUS} 
 obtain_scale_ocpu_val
 
 if [ "${STATUS}" = "true" ]; then
