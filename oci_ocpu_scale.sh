@@ -159,7 +159,7 @@ oci db vm-cluster get --vm-cluster-id ${VM_CLUSTER_OCID} | jq -r .data.\"display
 update_ocpu_curr_value()
 {
 oci db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.\"display-name\" > /dev/null 
-#echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.display-name"
+##echo "db vm-cluster update --cpu-core-count ${OCPU_VAL} --vm-cluster-id ${VM_CLUSTER_OCID} --wait-for-state AVAILABLE | jq -r .data.display-name"
 }
 
 ################################################################################
@@ -323,14 +323,16 @@ fi
 
 export VM_CLUSTER_OCID
 
-################################################################################
-# Execution of Script
-################################################################################
 GET_OCPU=$(get_ocpu_curr_value)
 CURRENT_OCPU=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $2}'`
 VM_NAME=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $1}'`
 VM_STATUS=`echo ${GET_OCPU} | awk -v OFS='\t' '{print $3}'`
+DO_NOT_CHANGE_OCPU_LOCK="${CONFIG_HOME}/ocpu_prevent_scale_${VM_NAME}.lck"
 export CURRENT_OCPU VM_STATUS VM_NAME
+
+################################################################################
+# Execution of Script
+################################################################################
 echo "====> Current VM Cluster OCPU Value is   : ${CURRENT_OCPU}"
 
 validate_vm_status ${VM_STATUS} 
