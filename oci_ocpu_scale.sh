@@ -12,7 +12,8 @@
 ##
 ##        VM_CLUSTER_OCID:VM_OCID_VALUE
 ##        DEFAULT_OCPU :32
-##        HIGHEST_OCPU_VAL:100
+##        HIGHEST_OCPU_VAL:96
+##        LOWEST_OCPU_VAL:12
 ##
 ## SCRIPT PROCESS FLOW:
 ##
@@ -82,6 +83,7 @@ case "$LINE_START" in
    HIGHEST_OCPU_VAL)        HIGHEST_OCPU_VAL=`echo $input_file |cut -d: -f2` ;;
    COOL_DOWN_OCPU_VAL)      COOL_DOWN_OCPU_VAL=`echo $input_file |cut -d: -f2` ;;
    WARM_UP_OCPU_VAL)        WARM_UP_OCPU_VAL=`echo $input_file |cut -d: -f2` ;;
+   LOWEST_OCPU_VAL)         LOWEST_OCPU_VAL=`echo $input_file |cut -d: -f2` ;;
 esac
 done < ${INPUT_FILE}
 
@@ -95,10 +97,16 @@ export VM_CLUSTER_OCID DEFAULT_OCPU HIGHEST_OCPU_VAL COOL_DOWN_OCPU_VAL WARM_UP_
 ################################################################################
 validate_ocpu_values ()
 {
-
 value=${1}
 if [ $((value%2)) -eq 0 ]
 then
+   if [ ${1} -lt ${LOWEST_OCPU_VAL} ];
+   then
+      echo "====> VM Cluster OCPU count of ${1} is : INVALID"
+      echo "      OCPU value needs to higher than the config value of LOWEST_OCPU_VAL:${LOWEST_OCPU_VAL}"
+      print_header_footer "ending"
+      exit 1
+   fi
    if [ $1 -eq 0 ];
    then
          if [ "${COOL_DOWN}" = "true" ]
@@ -126,6 +134,15 @@ else
    print_header_footer "ending"
    exit 1
 fi
+
+if [ ${1} -lt ${LOWEST_OCPU_VAL} ];
+then
+   echo "====> VM Cluster OCPU count of ${1} is : INVALID"
+   echo "      OCPU value needs to higher than the config value of LOWEST_OCPU_VAL:${LOWEST_OCPU_VAL}"
+   print_header_footer "ending"
+   exit 1
+fi
+
 }
 
 ################################################################################
@@ -260,6 +277,7 @@ print_header_footer ()
 ##                        MAIN SCRIPT EXECUTION                               ##
 ##  ------------------------------------------------------------------------  ##
 ################################################################################
+source ~/.bash_profile
 print_header_footer "starting"
 
 ################################################################################
