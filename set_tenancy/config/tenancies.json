@@ -1,0 +1,17 @@
+[
+  {
+    "tenancyName": "ReneACE1",
+    "tenancyId": "ocid1.tenancy.oc1.. aaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb1",
+    "ociConfigFileName": "config.reneace1"
+  },
+  {
+    "tenancyName": "ReneACE2",
+    "tenancyId": "ocid1.tenancy.oc1.. aaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2",
+    "ociConfigFileName": "config.reneace2"
+  },
+  {
+    "tenancyName": "ReneACE3",
+    "tenancyId": "ocid1.tenancy.oc1.. aaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb3",
+    "ociConfigFileName": "config.reneace3"
+  }
+]
